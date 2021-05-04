@@ -1,91 +1,101 @@
-var ctx, localPeerConnection, dataChannel, pc,txt;
-const l = window.location;
-const protoHostPath = l.protocol+'//'+l.host+l.pathname;
-window.onload=function(){
-    ctx=document.getElementById('ctx').getContext("2d");
-    txt = document.getElementById('txt');
-    CheckImportantHash();
+var handNum = 0;
+var numHands; var localHands=[];
+var clientHands;
+
+function Init(){
+    InitHands(5);
 }
 
-function CheckImportantHash(){
-    const hash = window.location.hash;
-    console.log('hash: ',hash);
-    if(hash.substring(1,7)=='offer='){
-        offerBtn.hidden=true;
-        const sdp = decodeURIComponent(hash.substring(7));
-        window.history.pushState('data', 'Taking Offer', protoHostPath)
-        TakeOffer(sdp);
-    } else if(hash.substring(1,9)=='confirm='){
-        const sdp = decodeURIComponent(hash.substring(9));
-        console.log(sdp);
-        window.history.pushState('data', 'Confirming Offer', protoHostPath)
-        ConfirmOffer(sdp);
+function InitHands(num){
+    numHands=num;
+    var newHands = [];
+    for (let i = 0; i < num; i++) {
+        newHands[i]=localHands[i]||{x:((i)/(num))*canv.width,y:canv.height-105};
+    }
+    localHands=newHands;
+}
+
+function moveHand(e) {
+    localHands[handNum].x += e.movementX;
+    localHands[handNum].y += e.movementY;
+}
+function GameLoop(){   
+    if(dataChannel?.readyState=='open')
+    dataChannel.send(JSON.stringify({localHands}));
+}
+
+function Draw(){
+    ctx.fillStyle = '#000544';
+    ctx.fillRect(0, 0, canv.width, canv.height);
+    
+    for (let i = 0; i < localHands.length; i++) {
+        const hand = localHands[i];
+
+        ctx.fillStyle = i==handNum?'#923325':'#373325';
+
+        ctx.lineWidth = 15;
+        ctx.beginPath();
+        ctx.moveTo(hand.x, hand.y);
+        ctx.lineTo((i/(localHands.length-1))*canv.width, canv.height);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(hand.x+0, hand.y+0);
+        ctx.lineTo(hand.x+70,hand.y+5);
+        ctx.lineTo(hand.x+100,hand.y+50);
+        ctx.lineTo(hand.x+50, hand.y+100);
+        ctx.lineTo(hand.x+0, hand.y+90);
+        ctx.closePath();
+        ctx.fill();
+    }
+    if(clientHands){
+        for (let i = 0; i < clientHands.length; i++) {
+            const hand = clientHands[i];
+
+            const y =canv.height-hand.y;
+           const x =canv.width-hand.x;
+
+            ctx.fillStyle = '#373325';
+
+            ctx.lineWidth = 15;
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(canv.width-(i/(clientHands.length-1))*canv.width, 0);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(x+0, y+0);
+            ctx.lineTo(x+70,y+5);
+            ctx.lineTo(x+100,y+50);
+            ctx.lineTo(x+50, y+100);
+            ctx.lineTo(x+0, y+90);
+            ctx.closePath();
+            ctx.fill();
+        }
+    }
+    window.requestAnimationFrame(Draw);
+}
+
+function Message(m){
+    const data = JSON.parse(m.data);
+    //console.log(data);
+    if(data.localHands){
+        clientHands = data.localHands;
+     //   alert(data.localHands)
     }
 }
 
-pc = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }]});
-pc.ondatachannel = e => {
-    dataChannel = e.channel;
-    dataChannel.onopen = () => Connected();
-    dataChannel.onmessage = m => console.log(m.data);
-};
-
-/*navigator.mediaDevices.getUserMedia({video:false, audio:true})
-  .then(stream => {
-      console.log('adding stream');
-      pc.addStream(v1.srcObject = stream)
-    });
-*/
-
-function Connected(){
-    txt.value = '';
-    offerBtn.hidden=true;
-    txt.hidden=true;
-    console.log("Connected");
-    instructions.innerHTML ='<b>Connected!</b>'
-}
-
-function MakeOffer(){
-    dataChannel = pc.createDataChannel("loving");
-    dataChannel.onopen = () => Connected();
-    dataChannel.onmessage = m => console.log(m.data);
-    
-    pc.createOffer().then(d => {pc.setLocalDescription(d);})
-    pc.onicecandidate = e => {
-        if (e.candidate) return;
-        const sdp = pc.localDescription.sdp;
-        console.log('offering sdp: ');
-        console.log(sdp)+'\n';
-        instructions.innerHTML ='Send this to your Friend. Have him go to here. Enter his Answer in the url of <b><u>this tab!</u></b>'
-        copyWrite(protoHostPath +'#offer=' + encodeURIComponent(sdp))
-    };
-}
-
-function TakeOffer(sdp){
-    console.log('accepting sdp: ');
-    console.log(sdp);
-    var desc = new RTCSessionDescription({ type:"offer", sdp:sdp });
-    pc.setRemoteDescription(desc).then(() => pc.createAnswer()).then(d => pc.setLocalDescription(d))
-    pc.onicecandidate = e => {
-        if (e.candidate) return;
-        const conf = pc.localDescription.sdp
-        console.log('confirming sdp: ');
-        console.log(conf)+'\n';
-        instructions.innerHTML ='Return this to your Friend. Have him enter this in the url of <b><u>his tab!</u></b>'
-        copyWrite(protoHostPath +'#confirm=' + encodeURIComponent(conf))
-    }; 
-}
-
-function ConfirmOffer(sdp){
-    var desc = new RTCSessionDescription({ type:"answer", sdp:sdp });
-    pc.setRemoteDescription(desc);
-}
-
-function copyWrite(text){
-    txt.value = text;
-    txt.select();
-    txt.setSelectionRange(0, 99999);
-    document.execCommand("copy");
-}
-
-window.addEventListener('popstate', CheckImportantHash);
+window.addEventListener("keydown", function (event) {
+    if(!event.repeat){
+        const k = event.key;
+        switch(event.key){
+            case"h":
+                overlay.hidden=!overlay.hidden;
+                break
+            case"Shift":
+                handNum++;
+                handNum = handNum%numHands;
+                break;
+        }
+    }
+});

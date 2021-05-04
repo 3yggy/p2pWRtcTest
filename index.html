@@ -3,13 +3,30 @@
 <head>
     <meta charset='utf-8'>
     <title>Friend Fondler</title>
+    <script src='index.js'></script>
     <script src='game.js'></script>
 </head>
 <body>
-    <h3 id='instructions'></h1>
-    <textarea style="position: absolute; left: 0;right: 0;" value="" id="txt"></textarea>
-    <button id='offerBtn' onclick="MakeOffer()">Make Invite</button>
-    <canvas id='ctx'>
-    </canvas>
+    <div id='overlay'>
+        <h3 id='instructions'></h1>
+        <textarea value="" id="txt"></textarea>
+        <button id='offerBtn' onclick="MakeOffer()">Make Invite</button>
+    </div>
 </body>
+<canvas id='canv'></canvas>
 </html>
+
+<style>
+html, body, div, canvas {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    color:whitesmoke;
+}
+
+#overlay{
+    margin: 4px;
+    position: absolute;
+}
+
+</style>
