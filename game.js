@@ -16,8 +16,19 @@ function InitHands(num){
 }
 
 function moveHand(e) {
-    localHands[handNum].x += e.movementX;
-    localHands[handNum].y += e.movementY;
+    var h = localHands[handNum];
+    h.x += e.movementX;
+    h.y += e.movementY;
+
+    if(h.x<0)
+        h.x=0;
+    else if(h.x>canv.width)
+        h.x=canv.width;
+    if(h.y<0)
+        h.y=0;
+    else if(h.y>canv.height)
+        h.y=canv.height;
+
 }
 function GameLoop(){   
     if(dataChannel?.readyState=='open')

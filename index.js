@@ -56,7 +56,7 @@ function CheckImportantHash(){
     }
 }
 
-pc = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }]});
+pc = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.ggodsogl12121e.com:19302" }]});
 pc.ondatachannel = e => {
     dataChannel = e.channel;
     ChannelInit();
